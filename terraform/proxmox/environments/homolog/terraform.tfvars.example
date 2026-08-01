@@ -1,19 +1,33 @@
-# Configurações do Proxmox
-proxmox_endpoint   = "https://177.91.64.37:8006/api2/json"
-proxmox_api_token  = "root@pam!terraform=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
-proxmox_node       = "pve"
+# Configurações do Proxmox - HOMOLOG
+#
+# IMPORTANTE - Segurança:
+# Este arquivo NÃO deve conter credenciais reais (tokens, senhas).
+# Credenciais sensíveis devem ser passadas via variáveis de ambiente:
+#
+#   export TF_VAR_proxmox_api_token="root@pam!terraform-token=seu-secret"
+#   export TF_VAR_default_password="SuaSenhaForte@2026"
+#
+# Os arquivos *.tfvars (sem .example) são ignorados pelo .gitignore.
 
-# Datastore (verificar no Proxmox: Datacenter > Storage)
+# Endpoint da API do Proxmox
+proxmox_endpoint = "https://IP_DO_PROXMOX:8006/api2/json"
+
+# Hostname do node Proxmox (rode `hostname` no Proxmox)
+proxmox_node = "pve"
+
+# Storage para os discos das VMs
 # Opções comuns: local-lvm, local-zfs, local
 datastore_id = "local-lvm"
 
-# ID do template cloud-init Ubuntu 22.04
-# Criar manualmente no Proxmox antes do terraform apply
+# ID do template cloud-init Ubuntu 22.04 (VM 9000)
 template_vm_id = 9000
 
-# Credenciais padrão das VMs
+# Usuário padrão das VMs
 default_username = "homolog"
-default_password = "Homolog@2026!"
 
-# Bridge de rede
+# Bridge de rede (sem VLAN)
 bridge = "vmbr0"
+
+# Credenciais (NÃO colocar aqui - usar env vars):
+# - TF_VAR_proxmox_api_token  (token de API do Proxmox)
+# - TF_VAR_default_password    (senha das VMs)

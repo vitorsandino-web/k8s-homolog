@@ -1,4 +1,4 @@
-# NAT Gateway
+# NAT Gateway - saída de internet do cluster
 module "nat_gw" {
   source = "../../modules/nat-gateway"
 
@@ -11,14 +11,13 @@ module "nat_gw" {
   public_gateway   = "177.91.66.33"
   cores            = 4
   memory           = 1024
-  disk_size        = 20
   datastore_id     = var.datastore_id
   bridge           = var.bridge
   username         = var.default_username
   password         = var.default_password
 }
 
-# Control Plane 1
+# Control Plane 1 - 8 GB RAM
 module "k8s_cp1" {
   source = "../../modules/k8s-node"
 
@@ -29,8 +28,7 @@ module "k8s_cp1" {
   ip_address     = "10.0.0.201/24"
   gateway        = "10.0.0.1"
   cores          = 4
-  memory         = 12288
-  disk_size      = 80
+  memory         = 8192
   datastore_id   = var.datastore_id
   bridge         = var.bridge
   role           = "control-plane"
@@ -38,7 +36,7 @@ module "k8s_cp1" {
   password       = var.default_password
 }
 
-# Control Plane 2
+# Control Plane 2 - 8 GB RAM
 module "k8s_cp2" {
   source = "../../modules/k8s-node"
 
@@ -49,8 +47,7 @@ module "k8s_cp2" {
   ip_address     = "10.0.0.202/24"
   gateway        = "10.0.0.1"
   cores          = 4
-  memory         = 12288
-  disk_size      = 80
+  memory         = 8192
   datastore_id   = var.datastore_id
   bridge         = var.bridge
   role           = "control-plane"
@@ -58,7 +55,7 @@ module "k8s_cp2" {
   password       = var.default_password
 }
 
-# Control Plane 3
+# Control Plane 3 - 8 GB RAM
 module "k8s_cp3" {
   source = "../../modules/k8s-node"
 
@@ -69,8 +66,7 @@ module "k8s_cp3" {
   ip_address     = "10.0.0.203/24"
   gateway        = "10.0.0.1"
   cores          = 4
-  memory         = 12288
-  disk_size      = 80
+  memory         = 8192
   datastore_id   = var.datastore_id
   bridge         = var.bridge
   role           = "control-plane"
@@ -78,7 +74,7 @@ module "k8s_cp3" {
   password       = var.default_password
 }
 
-# Worker 1
+# Worker 1 - 12 GB RAM (roda todos os workloads)
 module "k8s_w1" {
   source = "../../modules/k8s-node"
 
@@ -89,8 +85,7 @@ module "k8s_w1" {
   ip_address     = "10.0.0.211/24"
   gateway        = "10.0.0.1"
   cores          = 4
-  memory         = 11264
-  disk_size      = 80
+  memory         = 12288
   datastore_id   = var.datastore_id
   bridge         = var.bridge
   role           = "worker"

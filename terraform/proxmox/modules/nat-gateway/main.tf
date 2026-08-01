@@ -3,13 +3,12 @@ resource "proxmox_virtual_environment_vm" "nat_gw" {
   node_name = var.proxmox_node
   vm_id     = var.vm_id
 
-  # Clone do template cloud-init
+  # Linked clone puro - herda disco do template (2.2 GB)
   clone {
     vm_id = var.template_vm_id
-    full  = true
+    full  = false
   }
 
-  # Recursos
   cpu {
     cores = var.cores
     type  = "host"
@@ -19,54 +18,42 @@ resource "proxmox_virtual_environment_vm" "nat_gw" {
     dedicated = var.memory
   }
 
-  # Disco (será herdado do clone, mas podemos ajustar)
-  disk {
-    datastore_id = var.datastore_id
-    size         = var.disk_size
-    interface    = "virtio0"
-  }
-
-  # Duas interfaces de rede: privada (vmbr0 mesmo, mas rede lógica diferente) e pública
+  # Duas interfaces: privada (10.0.0.0/24) + pública (177.91.66.32/29)
   network_device {
-    bridge   = var.bridge
-    model    = "virtio"
-    mac_address = "00:50:56:01:01:01"  # MAC fixo para previsibilidade
+    bridge      = var.bridge
+    model       = "virtio"
+    mac_address = "00:50:56:01:01:01"
   }
 
   network_device {
-    bridge   = var.bridge
-    model    = "virtio"
+    bridge      = var.bridge
+    model       = "virtio"
     mac_address = "00:50:56:01:01:02"
   }
 
-  # Inicialização via cloud-init
   initialization {
     user_account {
       username = var.username
       password = var.password
     }
 
-    # Interface privada (ens18 - primeira interface)
+    # IP da primeira interface (privada) via cloud-init
     ip_config {
       ipv4 {
         address = "${var.private_ip}/${var.private_cidr}"
       }
     }
 
-    # DNS
     dns {
       servers = var.dns_servers
     }
   }
 
-  # Habilita agente QEMU para melhor integração
   agent {
     enabled = true
   }
 
-  # Inicia automaticamente
   on_boot = true
 
-  # Tags para organização
   tags = ["k8s-homolog", "nat-gateway"]
 }

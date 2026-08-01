@@ -3,9 +3,11 @@ resource "proxmox_virtual_environment_vm" "k8s_node" {
   node_name = var.proxmox_node
   vm_id     = var.vm_id
 
+  # Linked clone puro - herda disco do template (2.2 GB)
+  # Sem redeclarar disk { } para evitar zeroinit lento
   clone {
     vm_id = var.template_vm_id
-    full  = true
+    full  = false
   }
 
   cpu {
@@ -17,12 +19,7 @@ resource "proxmox_virtual_environment_vm" "k8s_node" {
     dedicated = var.memory
   }
 
-  disk {
-    datastore_id = var.datastore_id
-    size         = var.disk_size
-    interface    = "virtio0"
-  }
-
+  # Rede
   network_device {
     bridge = var.bridge
     model  = "virtio"
@@ -48,6 +45,7 @@ resource "proxmox_virtual_environment_vm" "k8s_node" {
 
   agent {
     enabled = true
+    timeout = "5m"
   }
 
   on_boot = true

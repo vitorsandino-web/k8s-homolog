@@ -75,12 +75,6 @@ variable "memory" {
   description = "RAM em MB"
 }
 
-variable "disk_size" {
-  type        = number
-  default     = 20
-  description = "Disco em GB"
-}
-
 variable "datastore_id" {
   type        = string
   description = "Datastore do Proxmox (local-lvm, local-zfs, etc.)"
