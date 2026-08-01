@@ -1,0 +1,6 @@
+---
+- name: Bootstrap comum em todas as VMs
+  hosts: nat_gateway:k8s_cluster
+  become: true
+  roles:
+    - common

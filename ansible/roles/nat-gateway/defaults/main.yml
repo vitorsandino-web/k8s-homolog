@@ -1,0 +1,7 @@
+---
+# Configurações do NAT Gateway
+public_ip: "177.91.66.34"
+public_cidr: 29
+public_gateway: "177.91.66.33"
+public_interface: "ens19"
+private_interface: "ens18"

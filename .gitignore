@@ -1,0 +1,42 @@
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfstate.backup
+*.tfvars
+!*.tfvars.example
+crash.log
+crash.*.log
+
+# Ansible
+*.retry
+inventory/hosts.ini
+inventory/hosts.yml
+inventory/hosts.json
+.vault_pass
+
+# K8s
+kubeconfig
+*.kubeconfig
+.kube/
+
+# Sealed Secrets (criptografados, OK commitar)
+# *.yaml dentro de sealed-secrets/ SÃO commitados
+
+# OS
+.DS_Store
+Thumbs.db
+*~
+
+# Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Logs
+*.log
+
+# Temporários
+tmp/
+.tmp/

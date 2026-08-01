@@ -1,0 +1,9 @@
+---
+# Sprint 2 - Instalar Cilium CNI
+- name: PLACEHOLDER - Instalar Cilium
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Aviso - playbook ainda não implementado
+      debug:
+        msg: "Este playbook será implementado na Sprint 2 do projeto"

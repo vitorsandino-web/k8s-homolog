@@ -1,0 +1,10 @@
+network:
+  version: 2
+  ethernets:
+    {{ public_interface | default('ens19') }}:
+      addresses:
+        - {{ public_ip }}/{{ public_cidr | default(29) }}
+      routes:
+        - to: default
+          via: {{ public_gateway }}
+      dhcp4: no

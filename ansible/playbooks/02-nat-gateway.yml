@@ -1,0 +1,6 @@
+---
+- name: Configurar NAT Gateway
+  hosts: nat_gateway
+  become: true
+  roles:
+    - nat-gateway

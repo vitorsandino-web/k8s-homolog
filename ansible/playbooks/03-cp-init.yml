@@ -1,0 +1,10 @@
+---
+# Sprint 2 - Inicializar primeiro control plane via kubeadm
+# Será implementado na Sprint 2
+- name: PLACEHOLDER - Inicializar k8s-cp1 com kubeadm
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Aviso - playbook ainda não implementado
+      debug:
+        msg: "Este playbook será implementado na Sprint 2 do projeto"

@@ -1,0 +1,19 @@
+# Configurações do Proxmox
+proxmox_endpoint   = "https://177.91.64.37:8006/api2/json"
+proxmox_api_token  = "root@pam!terraform=xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+proxmox_node       = "pve"
+
+# Datastore (verificar no Proxmox: Datacenter > Storage)
+# Opções comuns: local-lvm, local-zfs, local
+datastore_id = "local-lvm"
+
+# ID do template cloud-init Ubuntu 22.04
+# Criar manualmente no Proxmox antes do terraform apply
+template_vm_id = 9000
+
+# Credenciais padrão das VMs
+default_username = "homolog"
+default_password = "Homolog@2026!"
+
+# Bridge de rede
+bridge = "vmbr0"

@@ -1,0 +1,9 @@
+---
+# Sprint 2 - Join dos outros control planes
+- name: PLACEHOLDER - Join control planes adicionais
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Aviso - playbook ainda não implementado
+      debug:
+        msg: "Este playbook será implementado na Sprint 2 do projeto"

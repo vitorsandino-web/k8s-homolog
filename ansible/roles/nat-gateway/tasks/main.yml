@@ -1,0 +1,67 @@
+---
+- name: Instalar iptables-persistent
+  apt:
+    name:
+      - iptables-persistent
+    state: present
+
+- name: Habilitar IP forwarding permanentemente
+  sysctl:
+    name: net.ipv4.ip_forward
+    value: '1'
+    state: present
+    reload: yes
+
+- name: Configurar NAT (MASQUERADE)
+  iptables:
+    table: nat
+    chain: POSTROUTING
+    out_interface: "{{ public_interface | default('ens19') }}"
+    jump: MASQUERADE
+    comment: "NAT para saída de internet"
+
+- name: Permitir forwarding da rede privada para pública
+  iptables:
+    chain: FORWARD
+    in_interface: "{{ private_interface | default('ens18') }}"
+    out_interface: "{{ public_interface | default('ens19') }}"
+    jump: ACCEPT
+    comment: "Forward privado para público"
+
+- name: Permitir forwarding de retorno
+  iptables:
+    chain: FORWARD
+    in_interface: "{{ public_interface | default('ens19') }}"
+    out_interface: "{{ private_interface | default('ens18') }}"
+    jump: ACCEPT
+    match: state
+    state: ESTABLISHED,RELATED
+    comment: "Forward público para privado (resposta)"
+
+- name: Persistir regras iptables
+  command: netfilter-persistent save
+
+- name: Habilitar serviço netfilter-persistent
+  systemd:
+    name: netfilter-persistent
+    enabled: yes
+    state: started
+
+- name: Configurar IP público (cloud-init não configura segunda interface)
+  template:
+    src: netplan-public.yaml.j2
+    dest: /etc/netplan/99-public.yaml
+    mode: '0600'
+
+- name: Aplicar netplan
+  command: netplan apply
+  failed_when: false  # Pode falhar se já estiver aplicado, é tolerável
+
+- name: Verificar conectividade com internet
+  uri:
+    url: https://api.cloudflare.com/client/v4/ip
+    return_content: yes
+  register: cf_check
+  retries: 3
+  delay: 5
+  until: cf_check.status == 200

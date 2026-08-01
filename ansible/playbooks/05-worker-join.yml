@@ -1,0 +1,9 @@
+---
+# Sprint 2 - Join do worker
+- name: PLACEHOLDER - Join worker nodes
+  hosts: localhost
+  gather_facts: false
+  tasks:
+    - name: Aviso - playbook ainda não implementado
+      debug:
+        msg: "Este playbook será implementado na Sprint 2 do projeto"
