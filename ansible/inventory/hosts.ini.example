@@ -1,22 +1,20 @@
-# Inventário das VMs do cluster k8s homolog
-# Gerar a partir do Terraform output:
-# cd terraform/proxmox/environments/homolog && terraform output -json all_nodes
+[nat_gw]
+# nat-gw é o único host com IP público. Conecta direto.
+nat-gw ansible_host=177.91.66.34
 
-[nat_gateway]
-nat-gw ansible_host=10.0.0.1 ansible_user=homolog ansible_password=Homolog@2026! ansible_become_password=Homolog@2026!
+[control_plane]
+k8s-cp1 ansible_host=10.0.0.201
+k8s-cp2 ansible_host=10.0.0.202
+k8s-cp3 ansible_host=10.0.0.203
 
-[control_planes]
-k8s-cp1 ansible_host=10.0.0.201 ansible_user=homolog ansible_password=Homolog@2026! ansible_become_password=Homolog@2026!
-k8s-cp2 ansible_host=10.0.0.202 ansible_user=homolog ansible_password=Homolog@2026! ansible_become_password=Homolog@2026!
-k8s-cp3 ansible_host=10.0.0.203 ansible_user=homolog ansible_password=Homolog@2026! ansible_become_password=Homolog@2026!
-
-[workers]
-k8s-w1 ansible_host=10.0.0.211 ansible_user=homolog ansible_password=Homolog@2026! ansible_become_password=Homolog@2026!
+[worker]
+k8s-w1 ansible_host=10.0.0.211
 
 [k8s_cluster:children]
-control_planes
-workers
+control_plane
+worker
 
+# Cluster k8s - acesso via bastion (ProxyJump pela nat-gw)
 [k8s_cluster:vars]
-ansible_become=yes
-ansible_python_interpreter=/usr/bin/python3
+ansible_user=ubuntu
+ansible_ssh_common_args='-o ProxyJump=ubuntu@177.91.66.34 -o StrictHostKeyChecking=accept-new'

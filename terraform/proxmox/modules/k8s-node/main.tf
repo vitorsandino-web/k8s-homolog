@@ -3,8 +3,7 @@ resource "proxmox_virtual_environment_vm" "k8s_node" {
   node_name = var.proxmox_node
   vm_id     = var.vm_id
 
-  # Linked clone puro - herda disco do template (2.2 GB)
-  # Sem redeclarar disk { } para evitar zeroinit lento
+  # Linked clone puro - herda disco do template
   clone {
     vm_id = var.template_vm_id
     full  = false
@@ -28,7 +27,7 @@ resource "proxmox_virtual_environment_vm" "k8s_node" {
   initialization {
     user_account {
       username = var.username
-      password = var.password
+      keys     = [var.ssh_public_key]
     }
 
     ip_config {
@@ -44,8 +43,7 @@ resource "proxmox_virtual_environment_vm" "k8s_node" {
   }
 
   agent {
-    enabled = true
-    timeout = "5m"
+    enabled = false
   }
 
   on_boot = true

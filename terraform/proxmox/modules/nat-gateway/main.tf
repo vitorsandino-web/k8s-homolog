@@ -3,7 +3,7 @@ resource "proxmox_virtual_environment_vm" "nat_gw" {
   node_name = var.proxmox_node
   vm_id     = var.vm_id
 
-  # Linked clone puro - herda disco do template (2.2 GB)
+  # Linked clone puro - herda disco do template
   clone {
     vm_id = var.template_vm_id
     full  = false
@@ -18,13 +18,14 @@ resource "proxmox_virtual_environment_vm" "nat_gw" {
     dedicated = var.memory
   }
 
-  # Duas interfaces: privada (10.0.0.0/24) + pública (177.91.66.32/29)
+  # net0 - interface privada (sem gateway)
   network_device {
     bridge      = var.bridge
     model       = "virtio"
     mac_address = "00:50:56:01:01:01"
   }
 
+  # net1 - interface pública (com gateway)
   network_device {
     bridge      = var.bridge
     model       = "virtio"
@@ -34,13 +35,23 @@ resource "proxmox_virtual_environment_vm" "nat_gw" {
   initialization {
     user_account {
       username = var.username
-      password = var.password
+      keys     = [var.ssh_public_key]
     }
 
-    # IP da primeira interface (privada) via cloud-init
+    # ip_config[0] -> net0 (privada, sem gateway)
     ip_config {
       ipv4 {
         address = "${var.private_ip}/${var.private_cidr}"
+        # sem gateway aqui - de propósito
+      }
+    }
+
+    # ip_config[1] -> net1 (pública, com gateway)
+    # CORREÇÃO: configura direto no Terraform, não depende do Ansible
+    ip_config {
+      ipv4 {
+        address = "${var.public_ip}/${var.public_cidr}"
+        gateway = var.public_gateway
       }
     }
 
@@ -49,8 +60,10 @@ resource "proxmox_virtual_environment_vm" "nat_gw" {
     }
   }
 
+  # agent desabilitado enquanto o template não tiver qemu-guest-agent
+  # pré-instalado (ver docs/NAT-GATEWAY.md §2 e AGENT.md §7.1)
   agent {
-    enabled = true
+    enabled = false
   }
 
   on_boot = true

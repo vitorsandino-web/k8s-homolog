@@ -10,17 +10,17 @@ variable "vm_id" {
 
 variable "proxmox_node" {
   type        = string
-  description = "Nome do node Proxmox onde a VM será criada"
+  description = "Nome do node Proxmox"
 }
 
 variable "template_vm_id" {
   type        = number
-  description = "ID do template cloud-init no Proxmox"
+  description = "ID do template cloud-init"
 }
 
 variable "private_ip" {
   type        = string
-  description = "IP privado (interface interna)"
+  description = "IP privado (interface net0)"
 }
 
 variable "private_cidr" {
@@ -31,7 +31,7 @@ variable "private_cidr" {
 
 variable "public_ip" {
   type        = string
-  description = "IP público (interface externa)"
+  description = "IP público (interface net1)"
 }
 
 variable "public_cidr" {
@@ -42,19 +42,7 @@ variable "public_cidr" {
 
 variable "public_gateway" {
   type        = string
-  description = "Gateway da rede pública"
-}
-
-variable "private_interface" {
-  type        = string
-  default     = "ens18"
-  description = "Nome da interface privada"
-}
-
-variable "public_interface" {
-  type        = string
-  default     = "ens19"
-  description = "Nome da interface pública"
+  description = "Gateway da rede pública (rota default)"
 }
 
 variable "dns_servers" {
@@ -66,7 +54,6 @@ variable "dns_servers" {
 variable "cores" {
   type        = number
   default     = 4
-  description = "vCPUs"
 }
 
 variable "memory" {
@@ -75,31 +62,18 @@ variable "memory" {
   description = "RAM em MB"
 }
 
-variable "datastore_id" {
-  type        = string
-  description = "Datastore do Proxmox (local-lvm, local-zfs, etc.)"
-}
-
 variable "bridge" {
   type        = string
   default     = "vmbr0"
-  description = "Bridge de rede"
 }
 
 variable "username" {
   type        = string
-  default     = "homolog"
-  description = "Usuário padrão"
+  default     = "ubuntu"
+  description = "Usuário cloud-init"
 }
 
-variable "password" {
+variable "ssh_public_key" {
   type        = string
-  sensitive   = true
-  description = "Senha padrão (hash será calculado)"
-}
-
-variable "ssh_password_auth" {
-  type        = bool
-  default     = true
-  description = "Permitir autenticação SSH via senha"
+  description = "Chave SSH pública injetada via cloud-init"
 }

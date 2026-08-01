@@ -64,12 +64,11 @@ variable "role" {
 
 variable "username" {
   type        = string
-  default     = "homolog"
+  default     = "ubuntu"
   description = "Usuário padrão"
 }
 
-variable "password" {
+variable "ssh_public_key" {
   type        = string
-  sensitive   = true
-  description = "Senha padrão"
+  description = "Chave SSH pública injetada via cloud-init"
 }

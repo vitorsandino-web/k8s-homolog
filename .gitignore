@@ -9,14 +9,18 @@ crash.log
 crash.*.log
 tfplan
 tfplan.json
+tfplan-*
+*.tfplan
 # Backend files
 *.tfbackend
 
 # Ansible
 *.retry
 inventory/hosts.ini
+inventory/hosts.ini.real
 inventory/hosts.yml
 inventory/hosts.json
+.fact_cache/
 .vault_pass
 
 # K8s

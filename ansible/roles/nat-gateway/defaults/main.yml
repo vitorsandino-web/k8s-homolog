@@ -1,7 +1,6 @@
 ---
-# Configurações do NAT Gateway
-public_ip: "177.91.66.34"
-public_cidr: 29
-public_gateway: "177.91.66.33"
-public_interface: "ens19"
-private_interface: "ens18"
+# Interfaces detectadas via `ip -4 addr show` na nat-gw:
+# eth0 (altname ens18) = privada 10.0.0.1/24
+# eth1 (altname ens19) = publica  177.91.66.34/29
+private_interface: eth0
+public_interface: eth1
