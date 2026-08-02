@@ -45,9 +45,8 @@ Configuração em `~/.ssh/config`:
 ```
 Host 10.0.0.*
     User ubuntu
-    IdentityFile ~/.ssh/id_ed25519_k8s
-    StrictHostKeyChecking accept-new
-    ProxyCommand ssh -i ~/.ssh/id_ed25519_k8s -o StrictHostKeyChecking=accept-new -W %h:%p ubuntu@177.91.66.34
+    PreferredAuthentications password
+    ProxyCommand sshpass -p 'Homolog@2026!' ssh -o StrictHostKeyChecking=accept-new -W %h:%p homolog@177.91.66.34
 ```
 
 ## Consequências

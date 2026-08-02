@@ -69,13 +69,13 @@ ansible --version    # >= 2.10
 
 ## 2. Setup Inicial (uma vez só)
 
-### 2.1 Chave SSH do agente
+### 2.1 Autenticação via user/senha (lab/homolog)
 
-```bash
-ssh-keygen -t ed25519 -f ~/.ssh/id_ed25519_k8s -N "" -C "k8s-homolog-agent"
-cat ~/.ssh/id_ed25519_k8s.pub
-# saída: ssh-ed25519 AAAA... k8s-homolog-agent
-```
+Todas as VMs do lab usam o usuário `homolog` com a senha `Homolog@2026!`.
+A senha é injetada automaticamente pelo template cloud-init (snippet
+`/var/lib/vz/snippets/user-data-homolog.yaml` no Proxmox).
+
+> Não precisa gerar chave SSH.
 
 ### 2.2 Template VM 9000 no Proxmox (uma vez, via SSH no Proxmox)
 
@@ -124,18 +124,20 @@ export TF_VAR_default_password="Homolog@2026!"
 
 Dica: coloque num arquivo `.env` local (não commitar) e rode `source .env` antes de cada sessão.
 
-### 2.5 Configurar SSH config pra ProxyJump via bastion
+### 2.5 Configurar SSH config pra ProxyJump via bastion (autenticação via senha)
 
 ```bash
 cat >> ~/.ssh/config << 'EOF'
 
 Host 10.0.0.*
-    User ubuntu
-    IdentityFile ~/.ssh/id_ed25519_k8s
+    User homolog
     StrictHostKeyChecking accept-new
-    ProxyCommand ssh -i ~/.ssh/id_ed25519_k8s -o StrictHostKeyChecking=accept-new -W %h:%p ubuntu@177.91.66.34
+    PreferredAuthentications password
+    ProxyCommand sshpass -p 'Homolog@2026!' ssh -o StrictHostKeyChecking=accept-new -W %h:%p homolog@177.91.66.34
 EOF
 ```
+
+> Se `sshpass` não estiver instalado: `sudo apt install -y sshpass`.
 
 ## 3. Provisionar o nat-gateway (VM 200)
 
@@ -150,7 +152,7 @@ Aguardar SSH ficar disponível:
 
 ```bash
 timeout=180; elapsed=0
-until ssh -i ~/.ssh/id_ed25519_k8s -o StrictHostKeyChecking=accept-new ubuntu@177.91.66.34 'echo ok' 2>/dev/null; do
+until sshpass -p 'Homolog@2026!' ssh -o StrictHostKeyChecking=accept-new -o PubkeyAuthentication=no homolog@177.91.66.34 'echo ok' 2>/dev/null; do
   sleep 5; elapsed=$((elapsed+5))
   [ $elapsed -ge $timeout ] && { echo "Timeout"; exit 1; }
 done
