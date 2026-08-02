@@ -24,17 +24,10 @@
     nat_gw_cores: 4
     nat_gw_disk_gb: 8
     nat_gw_template_id: 9000
-    ssh_public_key_path: "/root/.ssh/id_ed25519_k8s.pub"
+    # Autenticação via user/senha (lab/homolog) — provida pelo template cloud-init
+    default_username: homolog
+    default_password: "Homolog@2026!"
   tasks:
-    - name: Ler chave SSH pública
-      slurp:
-        src: "{{ ssh_public_key_path }}"
-      register: ssh_key_raw
-
-    - name: Decodificar chave
-      set_fact:
-        ssh_public_key: "{{ ssh_key_raw.content | b64decode | trim }}"
-
     - name: Verificar se VM 200 já existe
       shell: "{{ proxmox_ssh }} \"qm list | grep -E '^ *{{ nat_gw_vm_id }} '\""
       register: vm_check
@@ -82,14 +75,7 @@
       delay: 2
       when: vm_check.rc != 0
 
-    - name: Criar arquivo temporário com chave SSH pública
-      copy:
-        content: "{{ ssh_public_key }}\n"
-        dest: "/tmp/nat-gw-sshkey.pub"
-        mode: '0600'
-      when: vm_check.rc != 0
-
-    - name: Configurar VM 200 (CPU, memória, rede, cloud-init)
+    - name: Configurar VM 200 (CPU, memória, rede)
       shell: |
         {{ proxmox_ssh }} "qm set {{ nat_gw_vm_id }} \
           --memory {{ nat_gw_memory_mb }} \
@@ -98,15 +84,7 @@
           --net1 virtio,bridge=vmbr0 \
           --ipconfig0 ip={{ nat_gw_private_ip }} \
           --ipconfig1 ip={{ nat_gw_public_ip }},gw={{ nat_gw_public_gw }} \
-          --sshkeys /tmp/nat-gw-sshkey.pub \
-          --ciuser {{ default_username | default('ubuntu') }} \
           --agent 1"
-      when: vm_check.rc != 0
-
-    - name: Remover arquivo temporário da chave SSH
-      file:
-        path: "/tmp/nat-gw-sshkey.pub"
-        state: absent
       when: vm_check.rc != 0
 
     - name: Expandir disco para {{ nat_gw_disk_gb }}G

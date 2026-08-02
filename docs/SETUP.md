@@ -118,10 +118,7 @@ cd k8s-homolog
 # Token de API do Proxmox (formato: root@pam!terraform-token=...)
 export TF_VAR_proxmox_api_token="SEU_TOKEN_AQUI"
 
-# Chave SSH pública (output do ssh-keygen acima)
-export TF_VAR_ssh_public_key="$(cat ~/.ssh/id_ed25519_k8s.pub)"
-
-# Senha (não usada pelo cluster, mantida pra compatibilidade)
+# Senha padronizada para todas as VMs (user homolog)
 export TF_VAR_default_password="Homolog@2026!"
 ```
 
