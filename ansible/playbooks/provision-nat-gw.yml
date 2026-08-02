@@ -1,16 +1,20 @@
 ---
-# Provisiona o nat-gateway (VM 200) via Proxmox API.
+# Provisiona o nat-gateway (VM 200) via Proxmox.
 # Substitui o Terraform pra evitar drift detection quando o disco é expandido.
 #
+# Por que SSH e não API: a API REST do Proxmox retorna 500 em algumas operações
+# (clone) por inconsistência de cache quando há destruição recente de VM.
+# O SSH via qm CLI é mais determinístico e legível em logs.
+#
 # Pré-requisito:
-#   - TF_VAR_proxmox_api_token configurado
+#   - proxmox_root_password (env var ou -e)
 #   - Template 9000 já criado no Proxmox (ver docs/SETUP.md §2.2)
 
 - name: Provisionar nat-gateway via Proxmox
   hosts: localhost
   gather_facts: false
   vars:
-    proxmox_api_url: "https://{{ proxmox_host }}:8006/api2/json"
+    proxmox_ssh: "sshpass -p '{{ proxmox_root_password }}' ssh -o StrictHostKeyChecking=accept-new root@{{ proxmox_host }}"
     nat_gw_vm_id: 200
     nat_gw_name: "nat-gw"
     nat_gw_private_ip: "10.0.0.1/24"
@@ -32,88 +36,86 @@
         ssh_public_key: "{{ ssh_key_raw.content | b64decode | trim }}"
 
     - name: Verificar se VM 200 já existe
-      uri:
-        url: "{{ proxmox_api_url }}/nodes/{{ proxmox_node }}/qemu/{{ nat_gw_vm_id }}/status"
-        method: GET
-        headers:
-          Authorization: "PVEAPIToken={{ proxmox_api_token }}"
-        validate_certs: false
-        status_code: 200, 404
+      shell: "{{ proxmox_ssh }} \"qm list | grep -E '^ *{{ nat_gw_vm_id }} '\""
       register: vm_check
+      changed_when: false
+      failed_when: false
 
     - name: VM 200 existe, pulando criação
       debug:
         msg: "VM 200 (nat-gw) já existe no Proxmox, pulando criação"
-      when: vm_check.status == 200
+      when: vm_check.rc == 0
+
+    - name: Limpar lock órfão da VM 200 (se existir)
+      shell: |
+        {{ proxmox_ssh }} "
+          pkill -9 -f 'kvm -id {{ nat_gw_vm_id }}' 2>/dev/null
+          sleep 2
+          qm unlock {{ nat_gw_vm_id }} 2>/dev/null
+          rm -f /var/lock/qemu-server/lock-{{ nat_gw_vm_id }}.conf
+        "
+      changed_when: false
+      failed_when: false
+      when: vm_check.rc != 0
+
+    - name: Destruir qualquer VM 200 residual
+      shell: |
+        {{ proxmox_ssh }} "
+          qm destroy {{ nat_gw_vm_id }} --purge 2>/dev/null || true
+          rm -f /etc/pve/qemu-server/{{ nat_gw_vm_id }}.conf 2>/dev/null
+          lvremove -f pve/vm-{{ nat_gw_vm_id }}-cloudinit pve/vm-{{ nat_gw_vm_id }}-disk-0 pve/vm-{{ nat_gw_vm_id }}-disk-1 2>/dev/null || true
+        "
+      changed_when: false
+      failed_when: false
+      when: vm_check.rc != 0
 
     - name: Criar VM 200 (nat-gw) via clone do template
-      uri:
-        url: "{{ proxmox_api_url }}/nodes/{{ proxmox_node }}/qemu/{{ nat_gw_vm_id }}/clone"
-        method: POST
-        headers:
-          Authorization: "PVEAPIToken={{ proxmox_api_token }}"
-        body_format: form-urlencoded
-        body:
-          newid: "{{ nat_gw_vm_id }}"
-          name: "{{ nat_gw_name }}"
-          full: 0
-        validate_certs: false
-      when: vm_check.status == 404
+      shell: "{{ proxmox_ssh }} \"qm clone {{ nat_gw_template_id }} {{ nat_gw_vm_id }} --name {{ nat_gw_name }} --full 0\""
+      register: clone_result
+      when: vm_check.rc != 0
 
     - name: Aguardar clone completar
-      uri:
-        url: "{{ proxmox_api_url }}/nodes/{{ proxmox_node }}/qemu/{{ nat_gw_vm_id }}/status"
-        method: GET
-        headers:
-          Authorization: "PVEAPIToken={{ proxmox_api_token }}"
-        validate_certs: false
+      shell: "{{ proxmox_ssh }} \"qm list | grep -E '^ *{{ nat_gw_vm_id }} '\""
       register: vm_status
-      until: vm_status.json.data is defined
+      until: vm_status.rc == 0
       retries: 30
       delay: 2
-      when: vm_check.status == 404
+      when: vm_check.rc != 0
 
-    - name: Configurar VM (CPU, memória, rede)
-      uri:
-        url: "{{ proxmox_api_url }}/nodes/{{ proxmox_node }}/qemu/{{ nat_gw_vm_id }}/config"
-        method: POST
-        headers:
-          Authorization: "PVEAPIToken={{ proxmox_api_token }}"
-        body_format: form-urlencoded
-        body:
-          cores: "{{ nat_gw_cores }}"
-          memory: "{{ nat_gw_memory_mb }}"
-          net0: "virtio,bridge={{ vmbr0 | default('vmbr0') }}"
-          net1: "virtio,bridge={{ vmbr0 | default('vmbr0') }}"
-          ipconfig0: "ip={{ nat_gw_private_ip }}"
-          ipconfig1: "ip={{ nat_gw_public_ip }},gw={{ nat_gw_public_gw }}"
-          sshkeys: "{{ ssh_public_key | urlencode }}"
-          ciuser: "{{ default_username | default('ubuntu') }}"
-          agent: 1
-        validate_certs: false
-      when: vm_check.status == 404
+    - name: Criar arquivo temporário com chave SSH pública
+      copy:
+        content: "{{ ssh_public_key }}\n"
+        dest: "/tmp/nat-gw-sshkey.pub"
+        mode: '0600'
+      when: vm_check.rc != 0
+
+    - name: Configurar VM 200 (CPU, memória, rede, cloud-init)
+      shell: |
+        {{ proxmox_ssh }} "qm set {{ nat_gw_vm_id }} \
+          --memory {{ nat_gw_memory_mb }} \
+          --cores {{ nat_gw_cores }} \
+          --net0 virtio,bridge=vmbr0 \
+          --net1 virtio,bridge=vmbr0 \
+          --ipconfig0 ip={{ nat_gw_private_ip }} \
+          --ipconfig1 ip={{ nat_gw_public_ip }},gw={{ nat_gw_public_gw }} \
+          --sshkeys /tmp/nat-gw-sshkey.pub \
+          --ciuser {{ default_username | default('ubuntu') }} \
+          --agent 1"
+      when: vm_check.rc != 0
+
+    - name: Remover arquivo temporário da chave SSH
+      file:
+        path: "/tmp/nat-gw-sshkey.pub"
+        state: absent
+      when: vm_check.rc != 0
 
     - name: Expandir disco para {{ nat_gw_disk_gb }}G
-      uri:
-        url: "{{ proxmox_api_url }}/nodes/{{ proxmox_node }}/qemu/{{ nat_gw_vm_id }}/resize"
-        method: PUT
-        headers:
-          Authorization: "PVEAPIToken={{ proxmox_api_token }}"
-        body_format: form-urlencoded
-        body:
-          disk: scsi0
-          size: "+{{ nat_gw_disk_gb | int - 3 }}G"  # +5G (template é 2.2G, vira 7.2G)
-        validate_certs: false
-      when: vm_check.status == 404
+      shell: "{{ proxmox_ssh }} \"qm disk resize {{ nat_gw_vm_id }} scsi0 +{{ nat_gw_disk_gb | int - 3 }}G\""
+      when: vm_check.rc != 0
 
     - name: Iniciar VM 200
-      uri:
-        url: "{{ proxmox_api_url }}/nodes/{{ proxmox_node }}/qemu/{{ nat_gw_vm_id }}/status/start"
-        method: POST
-        headers:
-          Authorization: "PVEAPIToken={{ proxmox_api_token }}"
-        validate_certs: false
-      when: vm_check.status == 404
+      shell: "{{ proxmox_ssh }} \"qm start {{ nat_gw_vm_id }}\""
+      when: vm_check.rc != 0
 
     - name: Aguardar SSH ficar disponível
       wait_for:
@@ -121,8 +123,9 @@
         port: 22
         timeout: 180
       delegate_to: localhost
-      when: vm_check.status == 404
+      when: vm_check.rc != 0
 
     - name: nat-gw provisionado
       debug:
         msg: "nat-gw (VM 200) provisionado e acessível via SSH em {{ nat_gw_public_ip | ipaddr('address') }}"
+      when: vm_check.rc != 0
