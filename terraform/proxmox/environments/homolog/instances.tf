@@ -21,6 +21,7 @@ module "k8s_cp1" {
   bridge         = var.bridge
   role           = "control-plane"
   username       = "homolog"
+  default_password = var.default_password
 }
 
 # Control Plane 2 - 8 GB RAM
@@ -39,6 +40,7 @@ module "k8s_cp2" {
   bridge         = var.bridge
   role           = "control-plane"
   username       = "homolog"
+  default_password = var.default_password
 }
 
 # Control Plane 3 - 8 GB RAM
@@ -57,6 +59,7 @@ module "k8s_cp3" {
   bridge         = var.bridge
   role           = "control-plane"
   username       = "homolog"
+  default_password = var.default_password
 }
 
 # Worker 1 - 12 GB RAM (workloads)
@@ -75,6 +78,7 @@ module "k8s_w1" {
   bridge         = var.bridge
   role           = "worker"
   username       = "homolog"
+  default_password = var.default_password
 }
 
 # Worker 2 - 12 GB RAM (redundância de workloads)
@@ -93,4 +97,5 @@ module "k8s_w2" {
   bridge         = var.bridge
   role           = "worker"
   username       = "homolog"
+  default_password = var.default_password
 }

@@ -1,8 +1,8 @@
 # VM do cluster k8s-homolog
 #
-# Estratégia: linked clone puro (disco 2.2 GB do template, rápido)
-# + expansão posterior via Ansible (playbook expand-disks.yml).
-# Isso evita o zeroinit lento do Terraform (~2 min/VM) e problemas de drift.
+# Estratégia: linked clone puro (disco 2.2 GB do template, rápido).
+# A senha é injetada direto no bloco user_account do provider —
+# isso evita dependência do qemu-guest-agent (que o template não tem).
 
 resource "proxmox_virtual_environment_vm" "k8s_node" {
   name      = var.name
@@ -29,11 +29,10 @@ resource "proxmox_virtual_environment_vm" "k8s_node" {
   }
 
   initialization {
+    # Senha explícita (Proxmox armazena de forma protegida na config VM)
     user_account {
       username = var.username
-      # Sem SSH key — autenticação exclusiva via senha (lab/homolog)
-      # Senha injetada pelo template cloud-init (user-data snippet)
-      keys = []
+      password = var.default_password
     }
 
     ip_config {
@@ -48,13 +47,11 @@ resource "proxmox_virtual_environment_vm" "k8s_node" {
     }
   }
 
-  # agent desabilitado para evitar travamento do apply
-  # (template não tem qemu-guest-agent pré-instalado)
+  # agent habilitado para diagnóstico via `qm guest exec`
   agent {
-    enabled = false
+    enabled = true
   }
 
   on_boot = true
-
-  tags = ["k8s-homolog", var.role]
+  tags    = ["k8s-homolog", var.role]
 }

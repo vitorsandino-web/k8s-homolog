@@ -24,6 +24,12 @@ variable "template_id" {
   description = "ID do template cloud-init Ubuntu 22.04 (já com user homolog + senha)"
 }
 
+variable "default_password" {
+  type        = string
+  sensitive   = true
+  description = "Senha padrão para todas as VMs (definida via TF_VAR_default_password)"
+}
+
 variable "bridge" {
   type        = string
   default     = "vmbr0"
