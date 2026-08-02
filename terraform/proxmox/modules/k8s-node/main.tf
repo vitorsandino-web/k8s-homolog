@@ -31,7 +31,9 @@ resource "proxmox_virtual_environment_vm" "k8s_node" {
   initialization {
     user_account {
       username = var.username
-      keys     = [var.ssh_public_key]
+      # Sem SSH key — autenticação exclusiva via senha (lab/homolog)
+      # Senha injetada pelo template cloud-init (user-data snippet)
+      keys = []
     }
 
     ip_config {

@@ -68,7 +68,11 @@ variable "username" {
   description = "Usuário padrão"
 }
 
-variable "ssh_public_key" {
+variable "default_password" {
   type        = string
-  description = "Chave SSH pública injetada via cloud-init"
+  sensitive   = true
+  default     = ""
+  description = "Senha do usuario (lab). Vem do TF_VAR_default_password"
 }
+
+# ssh_public_key removido — autenticação agora é via senha (lab/homolog)

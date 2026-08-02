@@ -20,8 +20,7 @@ module "k8s_cp1" {
   datastore_id   = var.datastore_id
   bridge         = var.bridge
   role           = "control-plane"
-  username       = var.default_username
-  ssh_public_key = var.ssh_public_key
+  username       = "homolog"
 }
 
 # Control Plane 2 - 8 GB RAM
@@ -39,8 +38,7 @@ module "k8s_cp2" {
   datastore_id   = var.datastore_id
   bridge         = var.bridge
   role           = "control-plane"
-  username       = var.default_username
-  ssh_public_key = var.ssh_public_key
+  username       = "homolog"
 }
 
 # Control Plane 3 - 8 GB RAM
@@ -58,8 +56,7 @@ module "k8s_cp3" {
   datastore_id   = var.datastore_id
   bridge         = var.bridge
   role           = "control-plane"
-  username       = var.default_username
-  ssh_public_key = var.ssh_public_key
+  username       = "homolog"
 }
 
 # Worker 1 - 12 GB RAM (workloads)
@@ -77,8 +74,7 @@ module "k8s_w1" {
   datastore_id   = var.datastore_id
   bridge         = var.bridge
   role           = "worker"
-  username       = var.default_username
-  ssh_public_key = var.ssh_public_key
+  username       = "homolog"
 }
 
 # Worker 2 - 12 GB RAM (redundância de workloads)
@@ -96,6 +92,5 @@ module "k8s_w2" {
   datastore_id   = var.datastore_id
   bridge         = var.bridge
   role           = "worker"
-  username       = var.default_username
-  ssh_public_key = var.ssh_public_key
+  username       = "homolog"
 }

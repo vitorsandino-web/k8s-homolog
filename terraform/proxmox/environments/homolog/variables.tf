@@ -21,24 +21,7 @@ variable "datastore_id" {
 
 variable "template_id" {
   type        = number
-  description = "ID do template cloud-init Ubuntu 22.04"
-}
-
-variable "ssh_public_key" {
-  type        = string
-  description = "Chave SSH pública injetada nas VMs via cloud-init"
-}
-
-variable "default_username" {
-  type        = string
-  default     = "ubuntu"
-  description = "Usuário padrão em todas as VMs"
-}
-
-variable "default_password" {
-  type        = string
-  sensitive   = true
-  description = "Senha padrão (não usada para nat-gateway; mantida para outras VMs via env var TF_VAR_default_password)"
+  description = "ID do template cloud-init Ubuntu 22.04 (já com user homolog + senha)"
 }
 
 variable "bridge" {
