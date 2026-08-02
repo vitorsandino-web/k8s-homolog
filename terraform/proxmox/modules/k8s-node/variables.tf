@@ -42,7 +42,7 @@ variable "cores" {
 
 variable "memory" {
   type        = number
-  default     = 12288
+  default     = 8192
   description = "RAM em MB"
 }
 

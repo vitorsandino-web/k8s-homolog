@@ -1,20 +1,9 @@
-# NAT Gateway - saída de internet do cluster + bastion SSH
-module "nat_gw" {
-  source = "../../modules/nat-gateway"
-
-  name           = "nat-gw"
-  vm_id          = 200
-  proxmox_node   = var.proxmox_node
-  template_vm_id = var.template_id
-  private_ip     = "10.0.0.1"
-  public_ip      = "177.91.66.34"
-  public_gateway = "177.91.66.33"
-  cores          = 4
-  memory         = 1024
-  bridge         = var.bridge
-  username       = var.default_username
-  ssh_public_key = var.ssh_public_key
-}
+# Cluster Kubernetes de homologação
+# IMPORTANTE: nat-gateway NÃO é gerenciado por Terraform.
+# É provisionado manualmente via Proxmox (ver docs/SETUP.md §2.2) e
+# gerenciado via Ansible (playbook 02-nat-gateway.yml).
+# Razão: drift detection do Terraform recriava a nat-gw quando o
+# disco era expandido manualmente.
 
 # Control Plane 1 - 8 GB RAM
 module "k8s_cp1" {
@@ -73,7 +62,7 @@ module "k8s_cp3" {
   ssh_public_key = var.ssh_public_key
 }
 
-# Worker 1 - 12 GB RAM (roda todos os workloads)
+# Worker 1 - 12 GB RAM (workloads)
 module "k8s_w1" {
   source = "../../modules/k8s-node"
 
@@ -82,6 +71,25 @@ module "k8s_w1" {
   proxmox_node   = var.proxmox_node
   template_vm_id = var.template_id
   ip_address     = "10.0.0.211/24"
+  gateway        = "10.0.0.1"
+  cores          = 4
+  memory         = 12288
+  datastore_id   = var.datastore_id
+  bridge         = var.bridge
+  role           = "worker"
+  username       = var.default_username
+  ssh_public_key = var.ssh_public_key
+}
+
+# Worker 2 - 12 GB RAM (redundância de workloads)
+module "k8s_w2" {
+  source = "../../modules/k8s-node"
+
+  name           = "k8s-w2"
+  vm_id          = 212
+  proxmox_node   = var.proxmox_node
+  template_vm_id = var.template_id
+  ip_address     = "10.0.0.212/24"
   gateway        = "10.0.0.1"
   cores          = 4
   memory         = 12288

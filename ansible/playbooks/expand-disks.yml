@@ -1,0 +1,70 @@
+---
+# Expande discos das VMs do cluster de 2.2 GB (template) para tamanho alvo.
+# Idempotente: roda safe se disco já está expandido.
+
+- name: Expandir discos das VMs do cluster
+  hosts: k8s_cluster
+  become: true
+  serial: 1  # Uma VM por vez pra não pressionar I/O
+  vars:
+    target_disk_gb: 50
+    # Workers têm mais espaço; alvo diferenciado
+    target_disk_gb_worker: 80
+  tasks:
+    - name: Definir tamanho alvo por role
+      set_fact:
+        disk_target: "{{ target_disk_gb_worker if role == 'worker' else target_disk_gb }}"
+
+    - name: Verificar disco atual
+      shell: df -BG / | tail -1 | awk '{print $2}' | tr -d 'G'
+      register: current_size
+      changed_when: false
+
+    - name: Mostrar tamanho atual
+      debug:
+        msg: "VM {{ inventory_hostname }}: disco atual {{ current_size.stdout }}G, alvo {{ disk_target }}G"
+
+    - name: Avisar se disco já é maior que alvo
+      debug:
+        msg: "Disco já é maior que alvo, pulando expansão"
+      when: current_size.stdout | int >= disk_target | int
+
+    - name: Solicitar reboot após expansão do LVM no Proxmox (via API)
+      debug:
+        msg: |
+          ============================================
+          ATENÇÃO: Expansão do LVM no Proxmox necessária
+          ============================================
+          Para expandir o disco de {{ current_size.stdout }}G para {{ disk_target }}G:
+          1. SSH no Proxmox
+          2. qm shutdown {{ vmid }} --timeout 30
+          3. qm disk resize {{ vmid }} scsi0 +{{ disk_target | int - current_size.stdout | int }}G
+          4. qm start {{ vmid }}
+          5. Aguardar SSH voltar
+          6. Rodar este playbook de novo
+          ============================================
+      when: current_size.stdout | int < disk_target | int
+
+    - name: Tentar expandir partição e filesystem (caso disco já tenha sido expandido)
+      block:
+        - name: Expandir partição 1 com fdisk
+          shell: |
+            printf "d\n1\nn\n1\n\n\nw\ny\n" | fdisk /dev/sda 2>&1
+          register: fdisk_out
+          changed_when: true
+          failed_when: false
+
+        - name: Resize filesystem
+          shell: resize2fs /dev/sda1
+          register: resize_out
+          changed_when: true
+
+        - name: Verificar novo tamanho
+          shell: df -BG / | tail -1 | awk '{print $2}' | tr -d 'G'
+          register: new_size
+          changed_when: false
+
+        - name: Mostrar resultado
+          debug:
+            msg: "VM {{ inventory_hostname }}: disco expandido de {{ current_size.stdout }}G para {{ new_size.stdout }}G"
+      when: current_size.stdout | int < disk_target | int

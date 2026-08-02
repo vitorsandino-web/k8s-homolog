@@ -1,10 +1,3 @@
-output "nat_gateway" {
-  value = {
-    private_ip = module.nat_gw.ip_addresses.private
-    public_ip  = module.nat_gw.ip_addresses.public
-  }
-}
-
 output "control_planes" {
   value = {
     cp1 = module.k8s_cp1.ip_only
@@ -16,15 +9,12 @@ output "control_planes" {
 output "workers" {
   value = {
     w1 = module.k8s_w1.ip_only
+    w2 = module.k8s_w2.ip_only
   }
 }
 
-output "all_nodes" {
+output "all_cluster_nodes" {
   value = {
-    "nat-gw" = {
-      ip   = module.nat_gw.ip_addresses.private
-      role = "nat-gateway"
-    }
     "k8s-cp1" = {
       ip   = module.k8s_cp1.ip_only
       role = "control-plane"
@@ -41,5 +31,11 @@ output "all_nodes" {
       ip   = module.k8s_w1.ip_only
       role = "worker"
     }
+    "k8s-w2" = {
+      ip   = module.k8s_w2.ip_only
+      role = "worker"
+    }
   }
 }
+
+# nat-gw não está aqui — provisionado manualmente (ver docs/SETUP.md)
