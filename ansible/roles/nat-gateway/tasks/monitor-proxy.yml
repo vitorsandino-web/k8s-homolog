@@ -1,0 +1,40 @@
+---
+# Reverse proxy na nat-gw: /grafana e /zabbix
+# Aplica nginx config que roteia por path com Host header rewrite
+---
+- name: Configurar nginx reverse proxy na nat-gw
+  hosts: nat_gw
+  become: true
+  tasks:
+    - name: Instalar nginx
+      apt:
+        name: nginx
+        state: present
+        update_cache: yes
+
+    - name: Copiar config de monitor
+      copy:
+        src: nginx-monitor.conf
+        dest: /etc/nginx/sites-available/monitor
+        mode: '0644'
+
+    - name: Habilitar site
+      file:
+        src: /etc/nginx/sites-available/monitor
+        dest: /etc/nginx/sites-enabled/monitor
+        state: link
+
+    - name: Remover site default
+      file:
+        path: /etc/nginx/sites-enabled/default
+        state: absent
+
+    - name: Testar config nginx
+      command: nginx -t
+      changed_when: false
+
+    - name: Reiniciar nginx
+      systemd:
+        name: nginx
+        state: restarted
+        enabled: yes

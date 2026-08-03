@@ -1,0 +1,44 @@
+---
+# Zabbix Server 6.4 LTS — conectado ao postgres local
+apiVersion: v1
+kind: Pod
+metadata:
+  name: zabbix-server
+  namespace: zabbix
+  labels:
+    app: zabbix-server
+spec:
+  containers:
+  - name: zabbix-server
+    image: zabbix/zabbix-server-pgsql:6.4.21-alpine
+    env:
+    - name: DB_SERVER_HOST
+      value: "zabbix-postgres"
+    - name: POSTGRES_USER
+      value: "zabbix"
+    - name: POSTGRES_PASSWORD
+      value: "zabbixpass"
+    - name: POSTGRES_DB
+      value: "zabbix"
+    - name: ZBX_LISTENPORT
+      value: "10051"
+    ports:
+    - containerPort: 10051
+      name: zabbix-trapper
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zabbix-server
+  namespace: zabbix
+spec:
+  selector:
+    app: zabbix-server
+  ports:
+  - name: trapper
+    port: 10051
+    targetPort: 10051

@@ -1,0 +1,93 @@
+---
+# Instala kubeadm/kubelet/kubectl em todas as 5 VMs cluster
+- name: Instalar kubeadm + kubelet + kubectl
+  hosts: k8s_cluster
+  become: true
+  gather_facts: true
+  vars:
+    k8s_version: "1.29"
+  tasks:
+    - name: Garantir apt destravado (com timeout safety)
+      shell: |
+        # Limpa lock files idempotente
+        rm -f /var/lib/dpkg/lock-frontend /var/lib/dpkg/lock /var/cache/apt/archives/lock /var/lib/apt/lists/lock 2>/dev/null
+        # Continua mesmo se algo falhar
+        dpkg --configure -a 2>/dev/null || true
+      changed_when: false
+      failed_when: false
+
+    - name: Swapoff
+      shell: swapoff -a
+      when: ansible_swaptotal_mb | default(0) > 0
+      failed_when: false
+
+    - name: Módulos kernel
+      copy:
+        dest: /etc/modules-load.d/k8s.conf
+        content: |
+          br_netfilter
+          overlay
+
+    - name: Carregar módulos
+      shell: |
+        modprobe br_netfilter 2>/dev/null || true
+        modprobe overlay 2>/dev/null || true
+      changed_when: false
+
+    - name: Sysctl k8s
+      sysctl:
+        name: "{{ item.k }}"
+        value: "{{ item.v }}"
+        sysctl_file: /etc/sysctl.d/99-k8s.conf
+        reload: yes
+      loop:
+        - { k: 'net.bridge.bridge-nf-call-iptables', v: '1' }
+        - { k: 'net.bridge.bridge-nf-call-ip6tables', v: '1' }
+        - { k: 'net.ipv4.ip_forward', v: '1' }
+
+    - name: Pacotes base
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+        state: present
+        update_cache: yes
+
+    - name: Chave repo k8s
+      shell: |
+        curl -fsSL https://pkgs.k8s.io/core:/stable:/v{{ k8s_version }}/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+      args:
+        creates: /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+
+    - name: Repo k8s
+      copy:
+        dest: /etc/apt/sources.list.d/kubernetes.list
+        content: |
+          deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v{{ k8s_version }}/deb/ /
+
+    - name: apt update
+      apt:
+        update_cache: yes
+
+    - name: kubeadm/kubelet/kubectl
+      apt:
+        name: [kubelet, kubeadm, kubectl]
+        state: present
+
+    - name: Pin version
+      shell: apt-mark hold kubelet kubeadm kubectl
+
+    - name: Habilitar kubelet
+      systemd:
+        name: kubelet
+        enabled: yes
+
+    - name: Pre-configurar containerd
+      shell: mkdir -p /etc/containerd && containerd config default | sed 's/SystemdCgroup = false/SystemdCgroup = true/' > /etc/containerd/config.toml
+
+    - name: Restart containerd
+      systemd:
+        name: containerd
+        state: restarted
+        daemon_reload: yes

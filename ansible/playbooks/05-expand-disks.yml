@@ -1,0 +1,50 @@
+---
+# Recriar partição vda1 + resize2fs (DEVE rodar após qm disk resize no host)
+# Estratégia: GPT backup expand via sgdisk -e, deletar partição 1 (preserva conteúdo fs),
+# recriar partição 1 ocupando TODO espaço, e resize2fs online.
+- name: Expandir filesystem nas VMs do cluster
+  hosts: k8s_cluster
+  become: true
+  gather_facts: true
+  tasks:
+    - name: Checar espaço atual
+      shell: df -h / | tail -1
+      register: df_current
+      changed_when: false
+
+    - name: Expandir partição (se disco >2G)
+      shell: |
+        set -e
+        # Se já tá 154G, não faz nada
+        SIZE=$(df -h / | tail -1 | awk '{print $2}')
+        if [ "$SIZE" = "154G" ] || [ "$SIZE" = "155G" ]; then
+          echo "Já expandido: $SIZE"
+          exit 0
+        fi
+        # 1. Expandir backup GPT (lê final do disco)
+        sgdisk -e /dev/vda
+        sleep 1
+        # 2. Deletar partição 1 (preserva dados; será recriada e expandida)
+        sgdisk -d 1 /dev/vda || true
+        sleep 1
+        # 3. Recriar partição 1 ocupando TODO o espaço livre (--largest-new)
+        sgdisk --largest-new 1 /dev/vda
+        sleep 1
+        # 4. Tipo 8300 (Linux filesystem)
+        sgdisk -t 1:8300 /dev/vda
+        # 5. Reler tabela
+        partprobe /dev/vda
+        sleep 2
+        # 6. Redimensionar filesystem
+        resize2fs /dev/vda1 2>&1 | tail -3
+        df -h / | tail -1
+      register: expand_result
+      changed_when: "'Filesystem at' in expand_result.stdout or expand_result.rc == 0"
+
+    - name: Verificar tamanho final
+      shell: df -h /
+      register: df_final
+      changed_when: false
+
+    - debug:
+        msg: "{{ inventory_hostname }}: {{ df_final.stdout_lines[1] }}"

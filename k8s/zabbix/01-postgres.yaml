@@ -1,0 +1,49 @@
+---
+# PostgreSQL simples para Zabbix (sem persistência - lab)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zabbix-postgres-init
+  namespace: zabbix
+data:
+  init.sql: |
+    CREATE DATABASE zabbix;
+    CREATE USER zabbix WITH PASSWORD 'zabbixpass';
+    GRANT ALL PRIVILEGES ON DATABASE zabbix TO zabbix;
+---
+apiVersion: v1
+kind: Pod
+metadata:
+  name: zabbix-postgres
+  namespace: zabbix
+  labels:
+    app: zabbix-postgres
+spec:
+  containers:
+  - name: postgres
+    image: postgres:15-alpine
+    env:
+    - name: POSTGRES_USER
+      value: "zabbix"
+    - name: POSTGRES_PASSWORD
+      value: "zabbixpass"
+    - name: POSTGRES_DB
+      value: "zabbix"
+    ports:
+    - containerPort: 5432
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zabbix-postgres
+  namespace: zabbix
+spec:
+  selector:
+    app: zabbix-postgres
+  ports:
+  - port: 5432
+    targetPort: 5432

@@ -1,24 +1,19 @@
 [nat_gw]
-# nat-gw é o único host com IP público. Conecta direto.
-nat-gw ansible_host=177.91.66.34
-
-[control_plane]
-k8s-cp1 ansible_host=10.0.0.201
-k8s-cp2 ansible_host=10.0.0.202
-k8s-cp3 ansible_host=10.0.0.203
-
-[worker]
-k8s-w1 ansible_host=10.0.0.211
-k8s-w2 ansible_host=10.0.0.212
+177.91.66.34 ansible_user=homolog ansible_become_password=Homolog@2026!
 
 [k8s_cluster:children]
-control_plane
-worker
+k8s_control_plane
+k8s_workers
 
-# Cluster k8s - acesso via bastion (ProxyJump pela nat-gw)
-[k8s_cluster:vars]
-ansible_user=ubuntu
-# Use ProxyCommand (não ProxyJump) pra preservar a chave SSH entre hops.
-# Ajuste o caminho da chave privada conforme seu ambiente local.
-ansible_ssh_private_key_file=/caminho/para/sua/chave
-ansible_ssh_common_args='-o ProxyCommand="ssh -i /caminho/para/sua/chave -o StrictHostKeyChecking=accept-new -W %h:%p ubuntu@177.91.66.34" -o StrictHostKeyChecking=accept-new'
+[k8s_control_plane]
+10.0.0.201 ansible_user=homolog ansible_become_password=Homolog@2026!
+10.0.0.202 ansible_user=homolog ansible_become_password=Homolog@2026!
+10.0.0.203 ansible_user=homolog ansible_become_password=Homolog@2026!
+
+[k8s_workers]
+10.0.0.211 ansible_user=homolog ansible_become_password=Homolog@2026!
+10.0.0.212 ansible_user=homolog ansible_become_password=Homolog@2026!
+
+[all:vars]
+ansible_python_interpreter=/usr/bin/python3
+ansible_ssh_common_args=-o StrictHostKeyChecking=accept-new -o PubkeyAuthentication=no

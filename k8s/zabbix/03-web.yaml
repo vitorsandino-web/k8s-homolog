@@ -1,0 +1,46 @@
+---
+# Zabbix Web UI (frontend) — nginx + php
+apiVersion: v1
+kind: Pod
+metadata:
+  name: zabbix-web
+  namespace: zabbix
+  labels:
+    app: zabbix-web
+spec:
+  containers:
+  - name: zabbix-web
+    image: zabbix/zabbix-web-nginx-pgsql:6.4.21-alpine
+    env:
+    - name: DB_SERVER_HOST
+      value: "zabbix-postgres"
+    - name: POSTGRES_USER
+      value: "zabbix"
+    - name: POSTGRES_PASSWORD
+      value: "zabbixpass"
+    - name: POSTGRES_DB
+      value: "zabbix"
+    - name: ZBX_SERVER_HOST
+      value: "zabbix-server"
+    - name: PHP_TZ
+      value: "America/Sao_Paulo"
+    ports:
+    - containerPort: 8080
+      name: http
+    resources:
+      limits:
+        cpu: 300m
+        memory: 384Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: zabbix-web
+  namespace: zabbix
+spec:
+  selector:
+    app: zabbix-web
+  ports:
+  - name: http
+    port: 80
+    targetPort: 8080

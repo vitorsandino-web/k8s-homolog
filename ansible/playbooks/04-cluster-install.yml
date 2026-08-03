@@ -1,0 +1,107 @@
+---
+# Instala pré-requisitos do Kubernetes em todos os 5 nodes (cp1/2/3 + w1/w2)
+# Containerd, kubeadm, kubelet, kubectl
+- name: Instalar Kubernetes (containerd + kubeadm + kubelet)
+  hosts: k8s_cluster
+  become: true
+  gather_facts: true
+  vars:
+    k8s_version: "1.29"
+    crio_docker_compat: true
+    kernel_modules:
+      - br_netfilter
+      - overlay
+    sysctl_settings:
+      net.bridge.bridge-nf-call-iptables: '1'
+      net.bridge.bridge-nf-call-ip6tables: '1'
+      net.ipv4.ip_forward: '1'
+
+  tasks:
+    - name: Desabilitar swap (k8s requirement)
+      shell: swapoff -a
+      when: ansible_swaptotal_mb > 0
+
+    - name: Remover swap do fstab
+      mount:
+        name: swap
+        fstype: swap
+        state: absent
+
+    - name: Garantir módulos br_netfilter e overlay
+      copy:
+        dest: /etc/modules-load.d/k8s.conf
+        content: |
+          br_netfilter
+          overlay
+        mode: '0644'
+
+    - name: Carregar módulos
+      shell: |
+        modprobe br_netfilter
+        modprobe overlay
+
+    - name: Configurar sysctl para k8s
+      sysctl:
+        name: "{{ item.key }}"
+        value: "{{ item.value }}"
+        sysctl_set: yes
+      loop: "{{ sysctl_settings | dict2items }}"
+
+    - name: Instalar pacotes base
+      apt:
+        name:
+          - apt-transport-https
+          - ca-certificates
+          - curl
+          - gpg
+          - software-properties-common
+          - linux-modules-extra-$(uname -r)
+        state: present
+        update_cache: yes
+
+    - name: Instalar containerd
+      apt:
+        name: containerd
+        state: present
+
+    - name: Configurar containerd (SystemdCgroup true)
+      shell: |
+        mkdir -p /etc/containerd
+        containerd config default | sed 's/SystemdCgroup = false/SystemdCgroup = true/' > /etc/containerd/config.toml
+
+    - name: Reiniciar e habilitar containerd
+      systemd:
+        name: containerd
+        state: restarted
+        enabled: yes
+        daemon_reload: yes
+
+    - name: Garantir que containerd está rodando
+      systemd:
+        name: containerd
+        state: started
+
+    - name: Instalar chave e repo do Kubernetes
+      shell: |
+        curl -fsSL https://pkgs.k8s.io/core:/stable:/v{{ k8s_version }}/deb/Release.key | gpg --dearmor -o /etc/apt/keyrings/kubernetes-apt-keyring.gpg
+        echo 'deb [signed-by=/etc/apt/keyrings/kubernetes-apt-keyring.gpg] https://pkgs.k8s.io/core:/stable:/v{{ k8s_version }}/deb/ /' > /etc/apt/sources.list.d/kubernetes.list
+
+    - name: apt update
+      apt:
+        update_cache: yes
+
+    - name: Instalar kubeadm, kubelet, kubectl
+      apt:
+        name:
+          - kubelet
+          - kubeadm
+          - kubectl
+        state: present
+
+    - name: Pin kubelet version
+      shell: apt-mark hold kubelet kubeadm kubectl
+
+    - name: Habilitar kubelet
+      systemd:
+        name: kubelet
+        enabled: yes

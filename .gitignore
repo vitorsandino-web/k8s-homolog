@@ -48,3 +48,9 @@ Thumbs.db
 # Temporários
 tmp/
 .tmp/
+
+# Ansible
+ansible/inventory/*.ini.real
+ansible/fact_cache/
+*.tfplan
+.terraform/
