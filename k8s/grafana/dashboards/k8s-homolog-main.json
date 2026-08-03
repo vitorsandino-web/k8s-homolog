@@ -1,0 +1,172 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Kubernetes Cluster Health",
+    "uid": "k8s-homolog-main",
+    "tags": [
+      "k8s",
+      "homolog",
+      "prometheus"
+    ],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 0,
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "templating": {
+      "list": []
+    },
+    "annotations": {
+      "list": []
+    },
+    "panels": [
+      {
+        "id": 1,
+        "type": "stat",
+        "title": "Nodes Ready",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "dfu3pq40g0000f"
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 0,
+          "y": 0
+        },
+        "targets": [
+          {
+            "expr": "count(kube_node_status_condition{condition=\"Ready\",status=\"true\"})",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "type": "stat",
+        "title": "Pods Running",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "dfu3pq40g0000f"
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 6,
+          "y": 0
+        },
+        "targets": [
+          {
+            "expr": "count(kube_pod_status_phase{phase=\"Running\"})",
+            "refId": "A"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "type": "stat",
+        "title": "CPU Cores",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "dfu3pq40g0000f"
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 12,
+          "y": 0
+        },
+        "targets": [
+          {
+            "expr": "sum(rate(node_cpu_seconds_total{mode!=\"idle\"}[5m]))",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "short"
+          }
+        }
+      },
+      {
+        "id": 4,
+        "type": "stat",
+        "title": "Memory Used",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "dfu3pq40g0000f"
+        },
+        "gridPos": {
+          "h": 6,
+          "w": 6,
+          "x": 18,
+          "y": 0
+        },
+        "targets": [
+          {
+            "expr": "sum(node_memory_Active_bytes) / sum(node_memory_MemTotal_bytes) * 100",
+            "refId": "A"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent"
+          }
+        }
+      },
+      {
+        "id": 5,
+        "type": "timeseries",
+        "title": "CPU Usage by Node",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "dfu3pq40g0000f"
+        },
+        "gridPos": {
+          "h": 9,
+          "w": 12,
+          "x": 0,
+          "y": 6
+        },
+        "targets": [
+          {
+            "expr": "sum by (instance) (rate(node_cpu_seconds_total{mode!=\"idle\"}[5m]))",
+            "refId": "A",
+            "legendFormat": "{{instance}}"
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "type": "timeseries",
+        "title": "Memory Usage by Node (GB)",
+        "datasource": {
+          "type": "prometheus",
+          "uid": "dfu3pq40g0000f"
+        },
+        "gridPos": {
+          "h": 9,
+          "w": 12,
+          "x": 12,
+          "y": 6
+        },
+        "targets": [
+          {
+            "expr": "sum by (instance) (node_memory_Active_bytes) / 1024 / 1024 / 1024",
+            "refId": "A",
+            "legendFormat": "{{instance}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "unit": "decbytes"
+          }
+        }
+      }
+    ]
+  },
+  "overwrite": true
+}
