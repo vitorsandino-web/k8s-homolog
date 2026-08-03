@@ -1,0 +1,73 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: zabbix-agent2-config
+  namespace: zabbix
+data:
+  zabbix_agent2.conf: |
+    PidFile=/var/run/zabbix/zabbix_agent2.pid
+    LogFile=/var/log/zabbix/zabbix_agent2.log
+    LogFileSize=10
+    DebugLevel=3
+    Server=zabbix-server
+    ServerActive=zabbix-server
+    HostnameItem=system.hostname
+    HostMetadataItem=system.uname
+    Include=/etc/zabbix/zabbix_agent2.d/*.conf
+    Plugins.SystemRun.EnableRemoteCommands=1
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: zabbix-agent2
+  namespace: zabbix
+  labels:
+    app: zabbix-agent2
+spec:
+  selector:
+    matchLabels:
+      app: zabbix-agent2
+  template:
+    metadata:
+      labels:
+        app: zabbix-agent2
+    spec:
+      hostNetwork: true
+      hostPID: true
+      containers:
+      - name: zabbix-agent2
+        image: zabbix/zabbix-agent2:alpine-6.4.21
+        env:
+        - name: ZBX_SERVER_HOST
+          value: zabbix-server.zabbix.svc.cluster.local
+        - name: ZBX_SERVER_PORT
+          value: "10051"
+        - name: ZBX_HOSTNAME
+          valueFrom:
+            fieldRef:
+              fieldPath: spec.nodeName
+        ports:
+        - containerPort: 10050
+          hostPort: 10050
+          name: zabbix-agent
+        resources:
+          requests:
+            cpu: 50m
+            memory: 128Mi
+          limits:
+            memory: 256Mi
+        volumeMounts:
+        - name: config
+          mountPath: /etc/zabbix/zabbix_agent2.d
+        - name: host
+          mountPath: /host
+          readOnly: true
+      volumes:
+      - name: config
+        configMap:
+          name: zabbix-agent2-config
+      - name: host
+        hostPath:
+          path: /
+      tolerations:
+      - operator: Exists
